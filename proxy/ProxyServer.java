@@ -8,25 +8,28 @@ public class ProxyServer {
         ServerSocket serverSocket = null;
         boolean listening = true;
 
-        int port = 10000;	//default
-        try {
-            port = Integer.parseInt(args[0]);
-        } catch (Exception e) {
-            System.out.println("No port specified. Using default port.");
-        }
+        int port = 7000;	//default
+//        try {
+//            port = Integer.parseInt(args[0]);
+//        } catch (Exception e) {
+//            //ignore me
+//        }
 
         try {
             serverSocket = new ServerSocket(port);
             System.out.println("Started on: " + port);
-        } catch (IOException e) {
-            System.err.println("Could not listen on port: " + port);
+        
+        while (listening) {
+            new ProxyThread(serverSocket.accept()).start();
+        }
+        serverSocket.close();
+    
+        }
+     catch (IOException e) {
+        e.printStackTrace();
+    	 //    System.err.println("Could not listen on port: " + args[0]);
             System.exit(-1);
         }
 
-        while (listening){
-            new ProxyThread(serverSocket.accept()).start();
-			System.out.println("\nNew client connected");
-        }
-        serverSocket.close();
-    }
+}
 }

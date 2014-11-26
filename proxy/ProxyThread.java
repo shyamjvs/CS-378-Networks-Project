@@ -1,126 +1,245 @@
 package proxy;
 
-import java.io.*;
-import java.util.*;
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.Socket;
+import java.net.URL;
+import javax.net.ssl.*;
+import java.util.StringTokenizer;
+import javax.servlet.http.HttpServletRequest;
+import javax.net.ssl.HttpsURLConnection;
 
-public class ProxyThread extends Thread{
+public class ProxyThread extends Thread {
+	private Socket socket = null;
+	//    private HTTPReqHeader request = null;
 
-    private Socket socket = null;
 	private final String USER_AGENT = "Mozilla/5.0";
-    private static final int BUFFER_SIZE = 16384;
-    public ProxyThread(Socket socket){
-        super("ProxyThread");
-        this.socket = socket;
-    }
+	private static final int BUFFER_SIZE = 32768;
+	private HttpServletRequest  request = null;
+	public ProxyThread(Socket socket) {
+		super("ProxyThread");
+		this.socket = socket;
+	}
 
-    public void run(){
+	public void run() {
+		//get input from user
+		//send request to server
+		//get response from server
+		//send response to user
 
-		// The following phases are involved in the proxy's operation:
-		// Phase 1 : obtain the URL from the proxy's client
-		// Phase 2 : forward this request to web server (internet)
-		// Phase 3 : obtain the webpage from the web server
-		// Phase 4 : give back the webpage to the proxy's client
+		try {
+			DataOutputStream out =
+					new DataOutputStream(socket.getOutputStream());
+			BufferedReader in = new BufferedReader(
+					new InputStreamReader(socket.getInputStream()));
 
-        try{
-			// Get the I/O streams for communication with the client
-            BufferedReader inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			BufferedWriter outToClient = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-			
-            int lineNumber = 0;
-            String clientHTTPRequest;
-            String urlRequested = "";
+			String inputLine, outputLine;
+			int cnt = 0;
+			String urlToCall = "";
+			///////////////////////////////////
+			//begin get request from client
+			while ((inputLine = in.readLine()) != null) {
 
-            // Phase 1 : Wait for the client to give a GET request
-            while ((clientHTTPRequest = inFromClient.readLine()) != null){
-                // Get the URL from the first line of request
-                try {
-                    StringTokenizer t = new StringTokenizer(clientHTTPRequest);
-                    t.nextToken();
-                } catch (Exception e){
-                    break;
+
+				System.out.println("Jha.2 " + inputLine);
+				try {
+					StringTokenizer tok = new StringTokenizer(inputLine);
+					tok.nextToken();
+				} catch (Exception e) {
+					break;
 				}
-                
-                if (lineNumber == 0){
-                    String[] tokens = clientHTTPRequest.split(" ");
-                    System.out.println("URL requested by client: " + tokens[1] + " through: " + tokens[0]);
+				//parse the first line of the request to find the url
+				if (cnt == 0) {
+					String[] tokens = inputLine.split(" ");
 
-                    if(tokens[1].startsWith("http://") || tokens[1].startsWith("https://")) 
-						urlRequested = tokens[1];
-                    else
-						urlRequested = "https://"+tokens[1];
+					if(tokens[1].startsWith("http")||tokens[1].startsWith("https"))
+					{
+						System.out.println("OHH " + tokens[1]);
+						urlToCall = tokens[1];
+					}
+					else urlToCall = "https://"+tokens[1];
+					//can redirect this to output log
+					System.out.println("Request for : " + urlToCall);
+				}
 
-                    System.out.println("URL sent to web server : " + urlRequested);
+				cnt++;
+			}
+			//end get request from client
+			///////////////////////////////////
+
+
+			BufferedReader rd = null;
+			//System.out.println("sending request
+			//to real server for url: "
+			//        + urlToCall);
+			///////////////////////////////////
+
+			/*            	
+            	//begin send request to server, get response from server
+                URL url = new URL(urlToCall);
+                URLConnection conn = url.openConnection();
+                conn.setDoInput(true);
+                //not doing HTTP posts
+                conn.setDoOutput(false);
+                //System.out.println("Type is: "
+			//+ conn.getContentType());
+                //System.out.println("content length: "
+			//+ conn.getContentLength());
+                //System.out.println("allowed user interaction: "
+			//+ conn.getAllowUserInteraction());
+                //System.out.println("content encoding: "
+			//+ conn.getContentEncoding());
+                //System.out.println("content type: "
+			//+ conn.getContentType());
+
+                // Get the response
+                InputStream is = null;
+                HttpURLConnection huc = (HttpURLConnection)conn;
+                if (conn.getContentLength() > 0) {
+                    try {
+                        is = conn.getInputStream();
+                        rd = new BufferedReader(new InputStreamReader(is));
+                    } catch (IOException ioe) {
+                        System.out.println(
+				"********* IO EXCEPTION **********: " + ioe);
+                    }
                 }
-				lineNumber++;
-            }
-            // We now have the URL asked by the client ready with us
+                //end send request to server, get response from server
+                ///////////////////////////////////
+			 */
 
-			BufferedReader readFromWebServer = null; // Read stream for data from web server
-            try{
 
-				// Phase 2 : Send a GET request to the web server for the URL through HTTPS first
-                System.out.println("Sending GET request (HTTPS) to the web server for: " + urlRequested);
-                URL url = new URL(urlRequested);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
-        		conn.setRequestMethod("GET");
-        		conn.setRequestProperty("User-Agent", USER_AGENT);
-       
-        		int responseCode = conn.getResponseCode();
-        		System.out.println("Response Code for HTTPS: " + responseCode);
+			try {
 
-				// If request fails, then send through HTTP
-				if(responseCode != 200){
-	         		System.out.println("Request for HTTPS failed");
-					urlRequested = "http" + urlRequested.substring(5);	
-					System.out.println("Sending GET request (HTTP) to the web server for: " + urlRequested);
+				//URL obj = new URL("https://www.google.com/");
+				URL obj = new URL(urlToCall);
+				HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+
+				con.setRequestMethod("GET");
+				con.setRequestProperty("User-Agent", USER_AGENT);
+
+				int responseCode = con.getResponseCode();
+				System.out.println("\nSending 'GET' request to URL : " + urlToCall);
+				System.out.println("Response Code : " + responseCode);
+
+
+				InputStream is = con.getInputStream();
+				System.out.println("Response Code : " + responseCode);
+
+
+				byte by[] = new byte[ BUFFER_SIZE ];
+				int index = is.read( by, 0, BUFFER_SIZE );
+				System.out.println("Response Code3 : " + responseCode);
+
+				byte temp[] = new byte[ 10000000 ];
+
+
+				int ctr = 0;
+
+//				String ConnectResponse = "HTTPS/1.1 200 Connection established\n" +
+//						"Proxy-agent: Netscape-Proxy/1.1\n" +
+//						"\r\n";
+//					
+//					out.write(ConnectResponse.getBytes(),0,ConnectResponse.getBytes().length);
+//					out.flush();
+				
 					
-                    url = new URL(urlRequested);
-                	conn = (HttpURLConnection) url.openConnection();
-             	
-					conn.setRequestMethod("GET");
-					conn.setRequestProperty("User-Agent", USER_AGENT);
-          
-					responseCode = conn.getResponseCode();
-    	     		System.out.println("Response Code for HTTP: " + responseCode);
-				}					
-				// GET request sent by the proxy
+					while ( index != -1 )
+					{
 
-                // Phase 3 : Obtain the response from the web server
-                InputStream inFromWebServer = conn.getInputStream();
-				readFromWebServer = new BufferedReader(new InputStreamReader(inFromWebServer), BUFFER_SIZE);
-				// Response received from the server and stored into buffer
+						//                	System.out.println("index = " + index);
 
-				// Phase 4 : Send the output received from the web server to the client
-				int value = 0;
-                while ((value = readFromWebServer.read()) != -1){
-					outToClient.write(value);
-                }
-                outToClient.flush();
-                // Sending to client finished
+						out.write(by,0,index);
 
-            } catch (Exception e){
-                System.err.println("Exception while Phase 2-4: " + e);
-                outToClient.write("",0,0);
-            }
+						for(int i=0 ;i<index;i++)
 
-            // Close all the I/O streams
-            if (readFromWebServer != null) {
-                readFromWebServer.close();
-            }
-            if (outToClient != null) {
-                outToClient.close();
-            }
-            if (inFromClient != null) {
-                inFromClient.close();
-            }
-            if (socket != null) {
-                socket.close();
-            }
+							temp[ctr++] = by[i];
 
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
+						//                	out.write( by, 0, index );
+
+						index = is.read( by, 0, BUFFER_SIZE );
+						//                  System.out.println("index afer read = " + index);
+					}
+					System.out.println("ctr = " + ctr);
+					ctr = 0;
+					System.out.println("Response Code : " + responseCode);
+
+					out.flush();
+
+					System.out.println("Finish");
+
+					out.close();
+
+					
+					System.out.println("Finish");
+					//end send response to client
+					///////////////////////////////////
+
+
+				
+
+			}
+			catch(Exception e)
+			{
+
+				e.printStackTrace();
+
+				urlToCall = "http:"+urlToCall.substring(5);	
+				System.out.println("ERRYRYR " + urlToCall);
+				URL obj = new URL(urlToCall);
+				HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+
+				con.setRequestMethod("GET");
+				con.setRequestProperty("User-Agent", USER_AGENT);
+
+				int responseCode = con.getResponseCode();
+				System.out.println("\nSending 'GET' request to URL : " + urlToCall);
+				System.out.println("Response Code : " + responseCode);
+
+
+				InputStream is = con.getInputStream();
+
+				byte by[] = new byte[ BUFFER_SIZE ];
+				int index = is.read( by, 0, BUFFER_SIZE );
+				while ( index != -1 )
+				{
+					out.write( by, 0, index );
+					index = is.read( by, 0, BUFFER_SIZE );
+				}
+				out.flush();
+
+				out.close();
+				//end send response to client
+				///////////////////////////////////
+			}
+			//close out all resources
+
+
+
+
+			if (out != null) {
+				out.close();
+			}
+			if (in != null) {
+				in.close();
+			}
+			if (socket != null) {
+				socket.close();
+			}
+
+		} 
+		
+		catch (IOException e) {
+			e.printStackTrace();
+		}        		
+
+
+	}	
 }
