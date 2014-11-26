@@ -1,11 +1,14 @@
 package proxy;
 
-import java.net.*;
-import java.io.*;
+import java.io.IOException;
+import java.net.ServerSocket;
 
 public class ProxyServer {
+	static LruCache cache = new LruCache(16);
+	static int count = 0;
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;
+        
         boolean listening = true;
 
         int port = 7000;	//default
