@@ -21,11 +21,9 @@ public class ProxyThread extends Thread {
 	public ProxyThread(Socket socket) {
 		super("ProxyThread");
 		this.socket = socket;
-		ProxyServer.count++;
 	}
 
 	public void run() {
-		System.out.println("i = " + ProxyServer.count + "count = " + ProxyServer.count);
 		//get input from user
 		//send request to server
 		//get response from server
@@ -44,8 +42,6 @@ public class ProxyThread extends Thread {
 			//begin get request from client
 			while ((inputLine = in.readLine()) != null) {
 
-
-				//				System.out.println("Jha.2 " + inputLine);
 				try {
 					StringTokenizer tok = new StringTokenizer(inputLine);
 					tok.nextToken();
@@ -58,12 +54,10 @@ public class ProxyThread extends Thread {
 
 					if(tokens[1].startsWith("http")||tokens[1].startsWith("https"))
 					{
-						System.out.println("i = " + ProxyServer.count + "OHH " + tokens[1]);
 						urlToCall = tokens[1];
 					}
 					else urlToCall = "https://"+tokens[1];
 					//can redirect this to output log
-					System.out.println("i = " + ProxyServer.count + "Request for : " + urlToCall);
 				}
 
 				cnt++;
@@ -112,7 +106,6 @@ public class ProxyThread extends Thread {
 			 */
 
 			if (ProxyServer.cache.Exists(urlToCall) && !urlToCall.endsWith("css") && !urlToCall.endsWith("jpg")) {
-				System.out.println("i = " + ProxyServer.count + "-----------------------------in cache----------------------------");
 				byte[] temp = ProxyServer.cache.Get(urlToCall);
 				out.write(temp, 0, temp.length);
 				out.flush();
@@ -127,7 +120,6 @@ public class ProxyThread extends Thread {
 				}
 			}
 			else{
-				System.out.println("i = " + ProxyServer.count + "---------------------------NOT IN CACHE-----------------------------");
 				try {
 
 					//URL obj = new URL("https://www.google.com/");
@@ -139,17 +131,11 @@ public class ProxyThread extends Thread {
 					con.setRequestProperty("User-Agent", USER_AGENT);
 
 					int responseCode = con.getResponseCode();
-					System.out.println("i = " + ProxyServer.count + "\nSending 'GET' request to URL : " + urlToCall);
-					System.out.println("i = " + ProxyServer.count + "Response Code : " + responseCode);
-
 
 					InputStream is = con.getInputStream();
-					System.out.println("i = " + ProxyServer.count + "Response Code : " + responseCode);
-
 
 					byte by[] = new byte[ BUFFER_SIZE ];
 					int index = is.read( by, 0, BUFFER_SIZE );
-					System.out.println("i = " + ProxyServer.count + "Response Code3 : " + responseCode);
 
 					byte temp[] = new byte[ 10000000 ];
 
@@ -172,14 +158,12 @@ public class ProxyThread extends Thread {
 						index = is.read( by, 0, BUFFER_SIZE );
 					}
 					
-					System.out.println("i = " + ProxyServer.count + "Behen ki shaadi");
 					byte temp2[] = new byte[ctr];
 					for(int i=0; i<ctr; i++)
 						temp2[i] = temp[i];
-					System.out.println("i = " + ProxyServer.count + "temp.length = " + ctr);
+					
 					ProxyServer.cache.Insert(urlToCall, temp2);
 					
-					System.out.println("i = " + ProxyServer.count + "CONTENT!!! " + (new String(temp2, "UTF-8")).substring(1, 100));
 					
 //					StringBuilder sb = new StringBuilder();
 //					Iterator<Entry<String, byte[]>> iter = ProxyServer.cache.entrySet().iterator();
@@ -195,54 +179,17 @@ public class ProxyThread extends Thread {
 //					}
 //					System.out.println("i = " + ProxyServer.count + sb.toString());
 
-					System.out.println("i = " + ProxyServer.count + "ctr = " + ctr);
 					ctr = 0;
-					System.out.println("i = " + ProxyServer.count + "Response Code : " + responseCode);
-
 					out.flush();
-
-					System.out.println("i = " + ProxyServer.count + "Finish");
-
 					out.close();
 
-
-					System.out.println("i = " + ProxyServer.count + "Finish");
 					//end send response to client
 					///////////////////////////////////
 
 				}
 				catch(Exception e)
 				{
-
 					e.printStackTrace();
-
-					urlToCall = "http:"+urlToCall.substring(5);	
-					System.out.println("i = " + ProxyServer.count + "ERRYRYR " + urlToCall);
-					URL obj = new URL(urlToCall);
-					HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-
-					con.setRequestMethod("GET");
-					con.setRequestProperty("User-Agent", USER_AGENT);
-
-					int responseCode = con.getResponseCode();
-					System.out.println("i = " + ProxyServer.count + "\nSending 'GET' request to URL : " + urlToCall);
-					System.out.println("i = " + ProxyServer.count + "Response Code : " + responseCode);
-
-
-					InputStream is = con.getInputStream();
-
-					byte by[] = new byte[ BUFFER_SIZE ];
-					int index = is.read( by, 0, BUFFER_SIZE );
-					while ( index != -1 )
-					{
-						out.write( by, 0, index );
-						index = is.read( by, 0, BUFFER_SIZE );
-					}
-					out.flush();
-
-					out.close();
-					//end send response to client
-					///////////////////////////////////
 				}
 				//close out all resources
 

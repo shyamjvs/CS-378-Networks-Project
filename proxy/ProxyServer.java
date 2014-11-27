@@ -4,9 +4,10 @@ import java.io.IOException;
 import java.net.ServerSocket;
 
 public class ProxyServer {
-	static LruCache cache = new LruCache(16);
-	static int count = 0;
+	static LruCache cache = new LruCache(2048);
+	
     public static void main(String[] args) throws IOException {
+    	Adblock.init();    	
         ServerSocket serverSocket = null;
         
         boolean listening = true;
