@@ -17,7 +17,7 @@ public class ProxyThread extends Thread {
 
 	private Socket socket = null;
 	private String clien_addr;
-	private String server_addr;
+	//private String server_addr;
 	private boolean Https = false;
 
 
@@ -26,7 +26,7 @@ public class ProxyThread extends Thread {
 		super("ProxyThread");
 		this.socket = socket;
 		clien_addr= socket.getRemoteSocketAddress().toString().split(":")[0].substring(1);
-		server_addr= socket.getRemoteSocketAddress().toString().split(":")[0].substring(1);
+		//server_addr= socket.getRemoteSocketAddress().toString().split(":")[0].substring(1);
 		System.out.println("chotttttttttti "+clien_addr);
 	}
 
@@ -128,7 +128,17 @@ public class ProxyThread extends Thread {
 				System.out.println("HTTPS Protocol " + urlToCall);
 
 
-				Socket clientSocket = new Socket(urlToCall.split(":")[0], 443);  
+				Socket clientSocket = new Socket(urlToCall.split(":")[0], 443);
+				String server_addr=clientSocket.getRemoteSocketAddress().toString().split(":")[0].split("/")[1];
+				System.out.println("address "+server_addr);
+				if(BlockedIp.isBlocked(server_addr)){
+					out.writeBytes("Your proxy firewall has denied access");
+					out.flush();
+					out.close();
+					clientSocket.close();
+					return;
+				}
+				System.out.println("reached here");
 
 				out.write(("HTTP/1.1 200 OK\r\n" + 
 						"Content-Type: text/xml; charset=utf-8\r\n" + 
@@ -160,6 +170,18 @@ public class ProxyThread extends Thread {
 				urlToCall = input.split("\r\n")[1].split(" ")[1];
 
 				Socket clientSocket = new Socket(urlToCall, 80);  
+				
+				String server_addr=clientSocket.getRemoteSocketAddress().toString().split(":")[0].split("/")[1];
+				System.out.println("address "+server_addr);
+				if(BlockedIp.isBlocked(server_addr)){
+					out.writeBytes("Your proxy firewall has denied access");
+					out.flush();
+					out.close();
+					clientSocket.close();
+					return;
+				}
+				
+				System.out.println("reached here 2");
 
 				OutputStream outToServer = clientSocket.getOutputStream();  
 
