@@ -2,215 +2,188 @@ package proxy;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
 import java.net.Socket;
-import java.net.URL;
+import java.util.Date;
 import java.util.StringTokenizer;
 
-import javax.servlet.http.HttpServletRequest;
+import sun.misc.BASE64Decoder;
+
+
 
 public class ProxyThread extends Thread {
-	private Socket socket = null;
-	//    private HTTPReqHeader request = null;
 
-	private final String USER_AGENT = "Mozilla/5.0";
-	private static final int BUFFER_SIZE = 32768;
-	private HttpServletRequest  request = null;
+	private Socket socket = null;
+	private String clien_addr;
+	private String server_addr;
+	private boolean Https = false;
+
+
 	public ProxyThread(Socket socket) {
+
 		super("ProxyThread");
 		this.socket = socket;
-
+		clien_addr= socket.getRemoteSocketAddress().toString().split(":")[0].substring(1);
+		server_addr= socket.getRemoteSocketAddress().toString().split(":")[0].substring(1);
+		System.out.println("chotttttttttti "+clien_addr);
 	}
 
 	public void run() {
-		//get input from user
-		//send request to server
-		//get response from server
-		//send response to user
 
 		try {
-			DataOutputStream out =
-					new DataOutputStream(socket.getOutputStream());
+
+			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 
 			InputStream in1 = socket.getInputStream();
-			
-			BufferedReader in = new BufferedReader(
-					new InputStreamReader(in1));
 
-			String inputLine, outputLine;
+			BufferedReader in = new BufferedReader(new InputStreamReader(in1));
+
+			String inputLine;
+
+
+
 			int cnt = 0;
 			String urlToCall = "";
-			///////////////////////////////////
-			//begin get request from client
+
+			BASE64Decoder decoder = new BASE64Decoder();
 
 			String input = "";
 
-			while ((inputLine = in.readLine()) != null) {
+			while ((inputLine = in.readLine()) != null) 
+			{
 
+				System.out.println("Jha.2 " + inputLine);
+				System.out.println("Gooooooooooooo "+cnt);
+				System.out.println(inputLine);
 
 				input += inputLine + "\r\n";
+				
+				
+				if(inputLine.startsWith("Proxy-Authorization: Basic")){
+			        System.out.println("Password is "+inputLine.substring(27).split("\n")[0]+" qqqqqqq");
+			        if(ProxyServer.login.contains(new String(decoder.decodeBuffer(inputLine.substring(27).split("\n")[0])))){
+			            Date dt=new Date();
+			            ProxyServer.authenticated.put(clien_addr,dt.getTime());
+			        }
+			    }
+
+				
 				try {
 					StringTokenizer tok = new StringTokenizer(inputLine);
 					tok.nextToken();
 				} catch (Exception e) {
 					break;
 				}
-				//parse the first line of the request to find the url
-				if (cnt == 0) {
-					String[] tokens = inputLine.split(" ");
 
-					if(tokens[1].startsWith("http")||tokens[1].startsWith("https"))
+				if (cnt == 0) 
+				{
+					String[] tokens = inputLine.split(" ");				
+
+					System.out.println("Tok "  +   tokens[0]);
+
+					if(tokens[0].equals("GET")||tokens[0].equals("POST"))
 					{
-						urlToCall = tokens[1];
+						System.out.println("Got it");
+						Https= false;
+						urlToCall = tokens[1].substring(7);
 					}
-					else urlToCall = "https://"+tokens[1];
-					//can redirect this to output log
+					else if(tokens[0].equals("CONNECT"))
+					{
+						System.out.println("WTF");
+						Https = true;
+						urlToCall = tokens[1];
+					}	
+					else
+					{	
+						urlToCall = tokens[1].substring(7);
+					}
 				}
+
 
 				cnt++;
 			}
-			System.out.println("################################URL : " + urlToCall);
-			//end get request from client
-			///////////////////////////////////
 
 
-			BufferedReader rd = null;
-
-			String user = socket.getLocalSocketAddress().toString(); 
-
-
-			try {
-
-				
-				System.out.println("I\n"+input);
-				
-				  Socket clientSocket = new Socket(urlToCall.split(":")[1].substring(2), 443);  
-				  
-				  OutputStream outToServer = clientSocket.getOutputStream();  
-
-				  InputStream inFromServer = clientSocket.getInputStream();  
-
-				  
-					out.write(("HTTP/1.1 200 OK\r\n" + 
-							"Content-Type: text/xml; charset=utf-8\r\n" + 
-							"Content-Length: length\r\n" + 
-							"\r\n").getBytes());
-					
-					
-					System.out.println("Connected To " + clientSocket.getRemoteSocketAddress());
-					System.out.println("Connected To " + socket.getRemoteSocketAddress());
-					
-					if(!socket.isClosed() && !clientSocket.isClosed())System.out.println("Mission is a go");
-					
-
-					
-					TcpConnection clientToServer = new TcpConnection("C2S",socket,clientSocket);
-					TcpConnection serverToClient = new TcpConnection("S2C",clientSocket,socket);
-
-					if(!socket.isClosed() && !clientSocket.isClosed())System.out.println("Mission is a go now");
-					
-					clientToServer.start();
-					serverToClient.start();
-
+			System.out.println("Param Satya 3 ");
+			Date cur_dt=new Date();
+			if(!ProxyServer.authenticated.containsKey(clien_addr) || timeout.is_timed_out(ProxyServer.authenticated.get(clien_addr).longValue(),cur_dt.getTime())){
+				System.out.println("Param Satya 4 ");
+				System.out.println("Input\n"+input);
+				out.writeBytes("HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"proxy\"\r\n");
+				out.flush();
+				out.close();
+				return;
 			}
-			catch(Exception e)
+
+
+			
+			System.out.println("Input\n"+input);
+			System.out.println("URL : " + urlToCall);
+
+			if(Https)
 			{
 
-				e.printStackTrace();
-
-				urlToCall = "http:"+urlToCall.substring(5);	
-				System.out.println("ERRYRYR " + urlToCall);
+				System.out.println("HTTPS Protocol " + urlToCall);
 
 
-				//URL obj = new URL("https://www.google.com/");
-				URL obj = new URL(urlToCall);
-				HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+				Socket clientSocket = new Socket(urlToCall.split(":")[0], 443);  
+
+				out.write(("HTTP/1.1 200 OK\r\n" + 
+						"Content-Type: text/xml; charset=utf-8\r\n" + 
+						"Content-Length: length\r\n" + 
+						"\r\n").getBytes());
 
 
-				con.setRequestMethod("GET");
-				con.setRequestProperty("User-Agent", USER_AGENT);
+				System.out.println("Connected To " + clientSocket.getRemoteSocketAddress());
+				System.out.println("Connected To " + socket.getRemoteSocketAddress());
 
-				int responseCode = con.getResponseCode();
-				System.out.println("\nSending 'GET' request to URL : " + urlToCall);
-				System.out.println("Response Code : " + responseCode);
+				if(!socket.isClosed() && !clientSocket.isClosed())System.out.println("Mission is a go");
 
+				TcpConnection clientToServer = new TcpConnection("C2S",socket,clientSocket);
+				TcpConnection serverToClient = new TcpConnection("S2C",clientSocket,socket);
 
-				InputStream is = con.getInputStream();
-				System.out.println("Response Code : " + responseCode);
+				if(!socket.isClosed() && !clientSocket.isClosed())System.out.println("Mission is a go now");
 
+				clientToServer.start();
+				serverToClient.start();
 
-				byte by[] = new byte[ BUFFER_SIZE ];
-				int index = is.read( by, 0, BUFFER_SIZE );
-				System.out.println("Response Code3 : " + responseCode);
-
-				byte temp[] = new byte[ 10000000 ];
-
-
-				int ctr = 0;
-
-
-
-				while ( index != -1 )
-				{
-
-					for(int i=0 ;i<index;i++)
-
-						temp[ctr++] = by[i];
-					index = is.read( by, 0, BUFFER_SIZE );
-
-				}
-
-				System.out.println("ctr = " + ctr);
-				System.out.println("Response Code : " + responseCode);
-
-
-				if(data.Exceptions.containsKey(user))
-				{
-					String[] exc = data.Exceptions.get(user);
-
-
-					boolean found = false;
-					for(String str : exc)
-					{
-						if(str.equals(urlToCall));
-						found = true;
-					}	
-
-					if(found)
-					{
-						out.write(temp,0,ctr);		
-						out.flush();
-						out.close();
-						System.out.println("Finish");
-					}	
-
-
-				}
-
-
-
-				String output =  Run.nb.predict(temp.toString());
-
-				//	if(output.equals("Pure"))
-				{
-					out.write(temp,0,ctr);		
-					out.flush();							
-					out.close();
-					System.out.println("Finish");
-				}	
 			}
 
+			else
+			{
+
+				System.out.println("HTTP Protocol " + urlToCall);
 
 
-			//close out all resources
+				urlToCall = input.split("\r\n")[1].split(" ")[1];
 
-		} 
+				Socket clientSocket = new Socket(urlToCall, 80);  
 
-		catch (IOException e) {
+				OutputStream outToServer = clientSocket.getOutputStream();  
+
+				System.out.println("Connected To " + clientSocket.getRemoteSocketAddress());
+				System.out.println("Connected To " + socket.getRemoteSocketAddress());
+
+
+				if(!socket.isClosed() && !clientSocket.isClosed())System.out.println("Mission is a go");
+
+				TcpConnection serverToClient = new TcpConnection("S2C",clientSocket,socket);
+				serverToClient.start();
+
+				System.out.println("MMMMMMMMMMMM");
+
+				TcpConnection clientToServer = new TcpConnection("C2S",socket,clientSocket);
+				outToServer.write(input.getBytes());
+				clientToServer.start();
+
+			} 
+
+		}
+
+		catch (Exception e)
+		{
 			e.printStackTrace();
 		}        		
 

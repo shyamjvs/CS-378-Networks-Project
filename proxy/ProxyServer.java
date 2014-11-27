@@ -1,15 +1,26 @@
 package proxy;
 
-import java.net.*;
-import java.io.*;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.HashMap;
+import java.util.HashSet;
 
 public class ProxyServer {
-    public static void main(String[] args) throws IOException {
-        ServerSocket serverSocket = null;
-        boolean listening = true;
+	
+	public static HashMap<String,Long> authenticated = new HashMap<String,Long>();
+	public static HashSet<String> login = new HashSet<String>();
 
+	
+    public static void main(String[] args) throws IOException {
+        
+    	ServerSocket serverSocket = null;
+        boolean listening = true;
+        login.add("paramdeep:singh");
+        BlockedIp.readFile("src/proxy/blocked_ips");
+        
         int port = 11000;	//default
-//        try {
+
+        //        try {
 //            port = Integer.parseInt(args[0]);
 //        } catch (Exception e) {
 //            //ignore me
@@ -22,18 +33,22 @@ public class ProxyServer {
         
         Run.trainData();
         
-        try {
+        try 
+        {
             serverSocket = new ServerSocket(port);
             System.out.println("Started on: " + port);
         
-        while (listening) {
+            while (listening) {
             new ProxyThread(serverSocket.accept()).start();
         }
+            
         serverSocket.close();
     
         }
-     catch (IOException e) {
-        e.printStackTrace();
+        
+        catch (IOException e) 
+        {
+        	e.printStackTrace();
     	 //    System.err.println("Could not listen on port: " + args[0]);
             System.exit(-1);
         }

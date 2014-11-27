@@ -15,6 +15,7 @@ public class TcpConnection extends Thread{
 		InputStream in;
 		OutputStream out;
 		String path;
+		String post=null;
 		public TcpConnection(String path1,Socket in1,Socket out1) {
 			
 			super("TcpConnection");
@@ -38,7 +39,7 @@ public class TcpConnection extends Thread{
 			}
 		}
 		
-		
+
 		public void run() {
 		
 			try 
@@ -56,7 +57,8 @@ public class TcpConnection extends Thread{
 		
 				while ( index != -1 )
 				{
-	//				System.out.println("byte " + path + " " + by[0]);
+			//		System.out.println("byte " + path + " " + by[0]);
+					
 					out.write(by,0,1);
 					if (!i.isClosed())
 					index = in.read( by, 0, 1 );
