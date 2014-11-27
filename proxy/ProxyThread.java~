@@ -126,7 +126,7 @@ public class ProxyThread extends Thread{
 					responseCode = conn.getResponseCode();
     	     		System.out.println("Response Code for HTTP: " + responseCode + " for request: " + requestType);
 	         		if(responseCode != 200) System.out.println("Request for HTTP failed");
-				}
+				}					
 				// GET/POST request sent by the proxy
 
                 // Phase 3 : Receive the response from the web server
