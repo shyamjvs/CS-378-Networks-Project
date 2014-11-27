@@ -8,13 +8,20 @@ public class ProxyServer {
         ServerSocket serverSocket = null;
         boolean listening = true;
 
-        int port = 7000;	//default
+        int port = 11000;	//default
 //        try {
 //            port = Integer.parseInt(args[0]);
 //        } catch (Exception e) {
 //            //ignore me
 //        }
 
+        
+        
+        
+        new data();
+        
+        Run.trainData();
+        
         try {
             serverSocket = new ServerSocket(port);
             System.out.println("Started on: " + port);
