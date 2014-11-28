@@ -22,7 +22,7 @@ import sun.misc.BASE64Decoder;
 public class ProxyThread extends Thread {
 
 	private Socket socket = null;
-	private String clien_addr;
+	public String clien_addr;
 	//private String server_addr;
 	private boolean Https = false;
 
@@ -119,6 +119,7 @@ public class ProxyThread extends Thread {
 				System.out.println("Param Satya 5 ");
 				out.flush();
 				out.close();
+				ProxyServer.prior.cur_queue_size--;
 				return;
 			}
 
@@ -172,6 +173,7 @@ public class ProxyThread extends Thread {
 								"\r\n"+"<h1> ABC</h1>");
 						out.flush();
 						out.close();
+						ProxyServer.prior.cur_queue_size--;
 						return;
 					}	
 			 
@@ -196,6 +198,7 @@ public class ProxyThread extends Thread {
 					out.flush();
 					out.close();
 					clientSocket.close();
+					ProxyServer.prior.cur_queue_size--;
 					return;
 				}
 				System.out.println("reached here");
@@ -261,6 +264,7 @@ public class ProxyThread extends Thread {
 						out.writeBytes("This site is not related to your academic needs");
 						out.flush();
 						out.close();
+						ProxyServer.prior.cur_queue_size--;
 						return;
 					}	
 			 
@@ -280,6 +284,7 @@ public class ProxyThread extends Thread {
 					out.flush();
 					out.close();
 					clientSocket.close();
+					ProxyServer.prior.cur_queue_size--;
 					return;
 				}
 				
@@ -312,5 +317,7 @@ public class ProxyThread extends Thread {
 		}        		
 
 
+		ProxyServer.prior.cur_queue_size--;
+		
 	}	
 }

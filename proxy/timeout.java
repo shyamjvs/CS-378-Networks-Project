@@ -8,7 +8,7 @@ public class timeout {
 	public static boolean is_timed_out(long t1, long t2) {
 
 		SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
- 
+		long timeout_limit=10;
 		try {
  
 			long diff = t2 - t1;
@@ -23,7 +23,7 @@ public class timeout {
 			System.out.print(t1);
             //System.out.println(60*60*60*diffDays + 60*60*diffHours + 60*diffMinutes + diffSeconds);
             
-            if(60*60*60*diffDays + 60*60*diffHours + 60*diffMinutes + diffSeconds < 10)
+            if(60*60*24*diffDays + 60*60*diffHours + 60*diffMinutes + diffSeconds < timeout_limit)
                 return false;
                 
             else return true;
