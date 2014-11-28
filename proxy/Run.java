@@ -44,15 +44,23 @@ public class Run {
 	     * @param args the command line arguments
 	     * @throws java.io.IOException
 	     */
-	    public static NaiveBayes trainData() throws IOException {
+	    public static NaiveBayes trainData(String type) throws IOException {
 	 
 	    	
 	    	Map<String, String[]> trainingExamples = new HashMap<>();
 	 	    	
-	    	
-	    	trainingExamples.put("Porn", data.Porn);
-	    	trainingExamples.put("Pure", data.Pure);
+	    	if(type.equals("link"))
+	    	{	
+		    	trainingExamples.put("explicitContent", data.explicitContentLink);
+		    	trainingExamples.put("acceptable", data.acceptableLink);
+	    	}
 
+	    	if(type.equals("text"))
+	    	{	
+		    	trainingExamples.put("explicitContent", data.explicitContentText);
+		    	trainingExamples.put("acceptable", data.acceptableText);
+	    	}
+	    	
 	    	nb = new NaiveBayes();
 	        nb.setChisquareCriticalValue(6.63); //0.01 pvalue
 	        nb.train(trainingExamples);

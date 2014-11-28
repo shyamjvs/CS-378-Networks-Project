@@ -18,7 +18,7 @@ public class ProxyServer {
         login.add("paramdeep:singh");
         BlockedIp.readFile("src/proxy/blocked_ips");
         
-        int port = 11000;	//default
+        int port = 12000;	//default
 
         //        try {
 //            port = Integer.parseInt(args[0]);
@@ -31,7 +31,7 @@ public class ProxyServer {
         
         new data();
         
-        Run.trainData();
+
         
         try 
         {
@@ -39,6 +39,7 @@ public class ProxyServer {
             System.out.println("Started on: " + port);
         
             while (listening) {
+     //       	System.out.println("ServerSocket "+serverSocket.accept().toString());
             new ProxyThread(serverSocket.accept()).start();
         }
             

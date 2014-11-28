@@ -31,7 +31,7 @@ public class BlockedIp {
 			ip+=x;
 	    	}
 			records.put(Integer.parseInt(ipandmask[1]), ip);
-			System.out.println(ip);
+//			System.out.println(ip);
 	    	}
 	    }
 	    reader.close();

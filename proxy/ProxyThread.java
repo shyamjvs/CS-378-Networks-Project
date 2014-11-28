@@ -2,14 +2,20 @@ package proxy;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Date;
 import java.util.StringTokenizer;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import sun.misc.BASE64Decoder;
+
 
 
 
@@ -54,9 +60,9 @@ public class ProxyThread extends Thread {
 			while ((inputLine = in.readLine()) != null) 
 			{
 
-				System.out.println("Jha.2 " + inputLine);
-				System.out.println("Gooooooooooooo "+cnt);
-				System.out.println(inputLine);
+	//			System.out.println("Jha.2 " + inputLine);
+	//			System.out.println("Gooooooooooooo "+cnt);
+	//			System.out.println(inputLine);
 
 				input += inputLine + "\r\n";
 				
@@ -105,26 +111,78 @@ public class ProxyThread extends Thread {
 				cnt++;
 			}
 
-
 			System.out.println("Param Satya 3 ");
 			Date cur_dt=new Date();
 			if(!ProxyServer.authenticated.containsKey(clien_addr) || timeout.is_timed_out(ProxyServer.authenticated.get(clien_addr).longValue(),cur_dt.getTime())){
 				System.out.println("Param Satya 4 ");
-				System.out.println("Input\n"+input);
 				out.writeBytes("HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"proxy\"\r\n");
+				System.out.println("Param Satya 5 ");
 				out.flush();
 				out.close();
 				return;
 			}
 
 
-			
+			System.out.println("YAHA");		
 			System.out.println("Input\n"+input);
+			System.out.println("YAHA1");
 			System.out.println("URL : " + urlToCall);
-
+			System.out.println("YAHA2");		
+			
+		 
+			
+			
 			if(Https)
 			{
+				
+				System.out.println("HTTPS Protocol " + urlToCall);
+				
+				Document doc;
+				try {
+			 
+					doc = Jsoup.connect("https://"+urlToCall).get();
+			 
+					String title = doc.title();
+					System.out.println("title : " + title);
+			 
+					Elements links = doc.select("a[href]");
+					
+					float badCount = 0;
+					float count = 0;
+					for (Element link : links) 
+					{
+					
+					count = count +1 ;
+					if(data.nb_link.predict(link.attr("href")).equals("explicitContent")
+						|| 	data.nb_text.predict(link.text()).equals("explicitContent"))
+					{
+						badCount = badCount + 1;
+					}		
+					
+					System.out.println("\nlink : " + link.attr("href"));
+					System.out.println("text : " + link.text());
+			 
+					}
+					
+					if((badCount/count)>0.3)
+					{
+						System.out.println("Pahuch Gaya");
+						out.writeBytes("HTTP/1.1 403 Forbidden \r\n" + 
+								"Connection: close\r\n"+
+								"\r\n"+"<h1> ABC</h1>");
+						out.flush();
+						out.close();
+						return;
+					}	
+			 
+				} 
+				
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
 
+				
 				System.out.println("HTTPS Protocol " + urlToCall);
 
 
@@ -132,7 +190,9 @@ public class ProxyThread extends Thread {
 				String server_addr=clientSocket.getRemoteSocketAddress().toString().split(":")[0].split("/")[1];
 				System.out.println("address "+server_addr);
 				if(BlockedIp.isBlocked(server_addr)){
-					out.writeBytes("Your proxy firewall has denied access");
+					out.writeBytes("HTTP/1.1 403 Forbidden \r\n" + 
+							"Connection: close\r\n"+
+							"\r\n");
 					out.flush();
 					out.close();
 					clientSocket.close();
@@ -164,10 +224,52 @@ public class ProxyThread extends Thread {
 			else
 			{
 
-				System.out.println("HTTP Protocol " + urlToCall);
-
 
 				urlToCall = input.split("\r\n")[1].split(" ")[1];
+				System.out.println("HTTP Protocol " + urlToCall);
+				
+				Document doc;
+				try {
+			 
+					doc = Jsoup.connect("http://"+urlToCall).get();
+			 
+					String title = doc.title();
+					System.out.println("title : " + title);
+			 
+					Elements links = doc.select("a[href]");
+					
+					float badCount = 0;
+					float count = 0;
+					for (Element link : links) 
+					{
+					
+					count = count +1 ;
+					if(data.nb_link.predict(link.attr("href")).equals("explicitContent")
+						|| 	data.nb_text.predict(link.text()).equals("explicitContent"))
+					{
+						badCount = badCount + 1;
+					}		
+					
+					System.out.println("\nlink : " + link.attr("href"));
+					System.out.println("text : " + link.text());
+			 
+					}
+					
+					if((badCount/count)>0.3)
+					{
+					
+						out.writeBytes("This site is not related to your academic needs");
+						out.flush();
+						out.close();
+						return;
+					}	
+			 
+				} 
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
+
 
 				Socket clientSocket = new Socket(urlToCall, 80);  
 				
