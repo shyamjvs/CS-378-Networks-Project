@@ -1,126 +1,368 @@
 package proxy;
 
-import java.io.*;
-import java.util.*;
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.util.Date;
+import java.util.StringTokenizer;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
-public class ProxyThread extends Thread{
+import sun.misc.BASE64Decoder;
 
-    private Socket socket = null;
-	private final String USER_AGENT = "Mozilla/5.0";
-    private static final int BUFFER_SIZE = 16384;
-    public ProxyThread(Socket socket){
-        super("ProxyThread");
-        this.socket = socket;
-    }
 
-    public void run(){
 
-		// The following phases are involved in the proxy's operation:
-		// Phase 1 : obtain the URL from the proxy's client
-		// Phase 2 : forward this request to web server (internet)
-		// Phase 3 : obtain the webpage from the web server
-		// Phase 4 : give back the webpage to the proxy's client
 
-        try{
-			// Get the I/O streams for communication with the client
-            BufferedReader inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			BufferedWriter outToClient = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-			
-            int lineNumber = 0;
-            String clientHTTPRequest;
-            String urlRequested = "";
+public class ProxyThread extends Thread {
 
-            // Phase 1 : Wait for the client to give a GET request
-            while ((clientHTTPRequest = inFromClient.readLine()) != null){
-                // Get the URL from the first line of request
-                try {
-                    StringTokenizer t = new StringTokenizer(clientHTTPRequest);
-                    t.nextToken();
-                } catch (Exception e){
-                    break;
+	private Socket socket = null;
+	public String clien_addr;
+	//private String server_addr;
+	private boolean Https = false;
+
+
+	public ProxyThread(Socket socket) {
+
+		super("ProxyThread");
+		this.socket = socket;
+		clien_addr= socket.getRemoteSocketAddress().toString().split(":")[0].substring(1);
+		//server_addr= socket.getRemoteSocketAddress().toString().split(":")[0].substring(1);
+//		System.out.println("chotttttttttti "+clien_addr);
+	}
+
+	public void run() {
+
+		try {
+
+			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+
+			InputStream in1 = socket.getInputStream();
+
+			BufferedReader in = new BufferedReader(new InputStreamReader(in1));
+
+			String inputLine;
+
+
+
+			int cnt = 0;
+			String urlToCall = "";
+
+			BASE64Decoder decoder = new BASE64Decoder();
+
+			String input = "";
+
+			while ((inputLine = in.readLine()) != null) 
+			{
+
+				//			System.out.println("Jha.2 " + inputLine);
+				//			System.out.println("Gooooooooooooo "+cnt);
+				//			System.out.println(inputLine);
+
+				input += inputLine + "\r\n";
+
+
+				if(inputLine.startsWith("Proxy-Authorization: Basic")){
+//					System.out.println("Password is "+inputLine.substring(27).split("\n")[0]+" qqqqqqq");
+					if(ProxyServer.login.contains(new String(decoder.decodeBuffer(inputLine.substring(27).split("\n")[0])))){
+						Date dt=new Date();
+						ProxyServer.authenticated.put(clien_addr,dt.getTime());
+					}
 				}
-                
-                if (lineNumber == 0){
-                    String[] tokens = clientHTTPRequest.split(" ");
-                    System.out.println("URL requested by client: " + tokens[1] + " through: " + tokens[0]);
 
-                    if(tokens[1].startsWith("http://") || tokens[1].startsWith("https://")) 
-						urlRequested = tokens[1];
-                    else
-						urlRequested = "https://"+tokens[1];
 
-                    System.out.println("URL sent to web server : " + urlRequested);
-                }
-				lineNumber++;
-            }
-            // We now have the URL asked by the client ready with us
+				try {
+					StringTokenizer tok = new StringTokenizer(inputLine);
+					tok.nextToken();
+				} catch (Exception e) {
+					break;
+				}
 
-			BufferedReader readFromWebServer = null; // Read stream for data from web server
-            try{
+				if (cnt == 0) 
+				{
+					String[] tokens = inputLine.split(" ");				
 
-				// Phase 2 : Send a GET request to the web server for the URL through HTTPS first
-                System.out.println("Sending GET request (HTTPS) to the web server for: " + urlRequested);
-                URL url = new URL(urlRequested);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+//					System.out.println("Tok "  +   tokens[0]);
 
-        		conn.setRequestMethod("GET");
-        		conn.setRequestProperty("User-Agent", USER_AGENT);
-       
-        		int responseCode = conn.getResponseCode();
-        		System.out.println("Response Code for HTTPS: " + responseCode);
+					if(tokens[0].equals("GET")||tokens[0].equals("POST"))
+					{
+//						System.out.println("Got it");
+						Https= false;
+						urlToCall = tokens[1].substring(7);
+					}
+					else if(tokens[0].equals("CONNECT"))
+					{
+//						System.out.println("WTF");
+						Https = true;
+						urlToCall = tokens[1];
+					}	
+					else
+					{	
+						urlToCall = tokens[1].substring(7);
+					}
+				}
 
-				// If request fails, then send through HTTP
-				if(responseCode != 200){
-	         		System.out.println("Request for HTTPS failed");
-					urlRequested = "http" + urlRequested.substring(5);	
-					System.out.println("Sending GET request (HTTP) to the web server for: " + urlRequested);
-					
-                    url = new URL(urlRequested);
-                	conn = (HttpURLConnection) url.openConnection();
-             	
-					conn.setRequestMethod("GET");
-					conn.setRequestProperty("User-Agent", USER_AGENT);
-          
-					responseCode = conn.getResponseCode();
-    	     		System.out.println("Response Code for HTTP: " + responseCode);
-				}					
-				// GET request sent by the proxy
 
-                // Phase 3 : Obtain the response from the web server
-                InputStream inFromWebServer = conn.getInputStream();
-				readFromWebServer = new BufferedReader(new InputStreamReader(inFromWebServer), BUFFER_SIZE);
-				// Response received from the server and stored into buffer
+				cnt++;
+			}
 
-				// Phase 4 : Send the output received from the web server to the client
-				int value = 0;
-                while ((value = readFromWebServer.read()) != -1){
-					outToClient.write(value);
-                }
-                outToClient.flush();
-                // Sending to client finished
+//			System.out.println("Param Satya 3 ");
+			Date cur_dt=new Date();
+			if(!ProxyServer.authenticated.containsKey(clien_addr) || timeout.is_timed_out(ProxyServer.authenticated.get(clien_addr).longValue(),cur_dt.getTime())){
+//				System.out.println("Param Satya 4 ");
+				out.writeBytes("HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"proxy\"\r\n");
+//				System.out.println("Param Satya 5 ");
+				out.flush();
+				out.close();
+				ProxyServer.prior.cur_queue_size--;
+				return;
+			}
 
-            } catch (Exception e){
-                System.err.println("Exception while Phase 2-4: " + e);
-                outToClient.write("",0,0);
-            }
 
-            // Close all the I/O streams
-            if (readFromWebServer != null) {
-                readFromWebServer.close();
-            }
-            if (outToClient != null) {
-                outToClient.close();
-            }
-            if (inFromClient != null) {
-                inFromClient.close();
-            }
-            if (socket != null) {
-                socket.close();
-            }
+//			System.out.println("YAHA");		
+//			System.out.println("Input\n"+input);
+//			System.out.println("YAHA1");
+//			System.out.println("URL : " + urlToCall);
+//			System.out.println("YAHA2");		
 
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
+			//Adblock check
+			System.out.println("BEFORE!!!!!!!!");
+			if (Adblock.filter(urlToCall)){
+				System.out.println("=============== AD BLOCKED ==================== ");
+				//				System.out.println("AdBlocked! " + urlToCall);
+				out.close();
+				in.close();
+				socket.close();
+				return;
+			}
+			System.out.println("AFTER!!!!!!!!");
+//
+//			//Check if in blocked list
+//			if(BlockList.isBlocked(socket, urlToCall)){
+//				System.out.println("=============== SITE IS BLOCKED ==================== ");
+//				out.close();
+//				in.close();
+//				socket.close();
+//				return;
+//			}
+
+
+
+
+			if(Https)
+			{
+
+//				System.out.println("HTTPS Protocol " + urlToCall);
+
+				Document doc;
+				try {
+
+					doc = Jsoup.connect("https://"+urlToCall).get();
+
+					String title = doc.title();
+//					System.out.println("title : " + title);
+
+					Elements links = doc.select("a[href]");
+
+					float badCount = 0;
+					float count = 0;
+					for (Element link : links) 
+					{
+
+						count = count +1 ;
+						if(data.nb_link.predict(link.attr("href")).equals("explicitContent")
+								|| 	data.nb_text.predict(link.text()).equals("explicitContent"))
+						{
+							badCount = badCount + 1;
+						}		
+
+//						System.out.println("\nlink : " + link.attr("href"));
+//						System.out.println("text : " + link.text());
+
+					}
+
+					if((badCount/count)>0.3)
+					{
+//						System.out.println("Pahuch Gaya");
+						out.writeBytes("HTTP/1.1 403 Forbidden \r\n" + 
+								"Connection: close\r\n"+
+								"\r\n"+"<h1> ABC</h1>");
+						out.flush();
+						out.close();
+						ProxyServer.prior.cur_queue_size--;
+						return;
+					}	
+
+				} 
+
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
+
+
+//				System.out.println("HTTPS Protocol " + urlToCall);
+
+
+				Socket clientSocket = new Socket(urlToCall.split(":")[0], 443);
+				String server_addr=clientSocket.getRemoteSocketAddress().toString().split(":")[0].split("/")[1];
+//				System.out.println("address "+server_addr);
+				if(BlockedIp.isBlocked(server_addr)){
+					out.writeBytes("HTTP/1.1 403 Forbidden \r\n" + 
+							"Connection: close\r\n"+
+							"\r\n");
+					out.flush();
+					out.close();
+					clientSocket.close();
+					ProxyServer.prior.cur_queue_size--;
+					return;
+				}
+//				System.out.println("reached here");
+
+				out.write(("HTTP/1.1 200 OK\r\n" + 
+						"Content-Type: text/xml; charset=utf-8\r\n" + 
+						"Content-Length: length\r\n" + 
+						"\r\n").getBytes());
+
+
+//				System.out.println("Connected To " + clientSocket.getRemoteSocketAddress());
+//				System.out.println("Connected To " + socket.getRemoteSocketAddress());
+
+//				if(!socket.isClosed() && !clientSocket.isClosed())
+//					System.out.println("Mission is a go");
+
+				TcpConnection clientToServer = new TcpConnection("C2S",socket,clientSocket,urlToCall);
+				TcpConnection serverToClient = new TcpConnection("S2C",clientSocket,socket,urlToCall);
+
+//				if(!socket.isClosed() && !clientSocket.isClosed())System.out.println("Mission is a go now");
+
+				clientToServer.start();
+				serverToClient.start();
+
+			}
+
+			else
+			{
+				urlToCall = input.split("\r\n")[1].split(" ")[1];
+//				System.out.println("HTTP Protocol " + urlToCall);
+
+				//Check if in cache
+//				if (ProxyServer.cache.Exists(urlToCall) && !urlToCall.endsWith("css") //&& !urlToCall.endsWith("jpg")) {
+//						){
+//					byte[] temp = ProxyServer.cache.Get(urlToCall);
+//					out.write(temp, 0, temp.length);
+//					out.flush();
+//					if (out != null) {
+//						out.close();
+//					}
+//					if (in != null) {
+//						in.close();
+//					}
+//					if (socket != null) {
+//						socket.close();
+//					}
+//				}
+				
+				if (false){
+				
+				}
+
+				else{
+
+
+					Document doc;
+					try {
+
+						doc = Jsoup.connect("http://"+urlToCall).get();
+
+						String title = doc.title();
+//						System.out.println("title : " + title);
+
+						Elements links = doc.select("a[href]");
+
+						float badCount = 0;
+						float count = 0;
+						for (Element link : links) 
+						{
+
+							count = count +1 ;
+							if(data.nb_link.predict(link.attr("href")).equals("explicitContent")
+									|| 	data.nb_text.predict(link.text()).equals("explicitContent"))
+							{
+								badCount = badCount + 1;
+							}		
+
+//							System.out.println("\nlink : " + link.attr("href"));
+//							System.out.println("text : " + link.text());
+
+						}
+
+						if((badCount/count)>0.3)
+						{
+
+							out.writeBytes("This site is not related to your academic needs");
+							out.flush();
+							out.close();
+							ProxyServer.prior.cur_queue_size--;
+							return;
+						}	
+
+					} 
+					catch (IOException e)
+					{
+						e.printStackTrace();
+					}
+
+
+					Socket clientSocket = new Socket(urlToCall, 80);  
+
+					String server_addr=clientSocket.getRemoteSocketAddress().toString().split(":")[0].split("/")[1];
+//					System.out.println("address "+server_addr);
+					if(BlockedIp.isBlocked(server_addr)){
+						out.writeBytes("Your proxy firewall has denied access");
+						out.flush();
+						out.close();
+						clientSocket.close();
+						ProxyServer.prior.cur_queue_size--;
+						return;
+					}
+
+//					System.out.println("reached here 2");
+
+					OutputStream outToServer = clientSocket.getOutputStream();  
+
+//					System.out.println("Connected To " + clientSocket.getRemoteSocketAddress());
+//					System.out.println("Connected To " + socket.getRemoteSocketAddress());
+//
+//
+//					if(!socket.isClosed() && !clientSocket.isClosed())System.out.println("Mission is a go");
+
+					TcpConnection serverToClient = new TcpConnection("S2C",clientSocket,socket,urlToCall);
+					serverToClient.start();
+
+//					System.out.println("MMMMMMMMMMMM");
+
+					TcpConnection clientToServer = new TcpConnection("C2S",socket,clientSocket,urlToCall);
+					outToServer.write(input.getBytes());
+					clientToServer.start();
+
+				} 
+
+			}
+		}
+
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}        		
+
+
+		ProxyServer.prior.cur_queue_size--;
+
+	}	
 }
