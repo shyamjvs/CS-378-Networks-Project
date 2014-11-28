@@ -18,12 +18,12 @@ public class BlockList {
 			
 			String s = null;
 			br = new BufferedReader(new FileReader("/tmp/" + ip));
-			System.out.println("hellp " + ip);
+//			System.out.println("hellp " + ip);
 			
 			while ((s = br.readLine()) != null) {
-				System.out.println("abcdef " + s);
+//				System.out.println("abcdef " + s);
 				list.add(s);
-				System.out.println("in loop");
+//				System.out.println("in loop");
 			}
  
 		} catch (IOException e) {

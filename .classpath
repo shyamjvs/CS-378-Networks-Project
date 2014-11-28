@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path=""/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/home/pratyaksh/Downloads/jsoup-1.8.1.jar"/>
+	<classpathentry kind="lib" path="/home/pratyaksh/Downloads/javax.servlet-3.0.0.v201112011016.jar"/>
+	<classpathentry kind="lib" path="/home/pratyaksh/Downloads/google-collections.jar"/>
+	<classpathentry kind="output" path=""/>
+</classpath>

@@ -11,15 +11,16 @@ public class ProxyServer {
 	public static HashSet<String> login = new HashSet<String>();
 	public static HashMap<String,Integer> priorityMap = new HashMap<String,Integer>();
 	public static Prioritization prior;
-
+	public static LruCache cache = new LruCache(15000);
 	
     public static void main(String[] args) throws IOException {
-        
+    	Adblock.init();   
+    	
     	ServerSocket serverSocket = null;
         boolean listening = true;
         login.add("paramdeep:singh");
         priorityMap.put("192.168.1.9", 100);
-        BlockedIp.readFile("src/proxy/blocked_ips");
+        BlockedIp.readFile("proxy/blocked_ips");
         
         int port = 12000;	//default
 
