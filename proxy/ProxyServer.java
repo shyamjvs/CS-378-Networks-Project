@@ -2,14 +2,16 @@ package proxy;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import proxy.LruCache;
 
 public class ProxyServer {
-	static LruCache cache = new LruCache(2048);
+	static LruCache cache = new LruCache(15000);
 	
     public static void main(String[] args) throws IOException {
     	Adblock.init();    	
         ServerSocket serverSocket = null;
-        
+//        System.out.println(Adblock.filter("http://www.google.com/"));
+//        System.out.println(Adblock.filter("http://static.adzerk.net/reddit/ads.php"));
         boolean listening = true;
 
         int port = 7000;	//default

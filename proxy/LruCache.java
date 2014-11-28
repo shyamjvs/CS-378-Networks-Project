@@ -23,27 +23,27 @@ public class LruCache {
 		this.TIME_OUT = timeout;
 	}
 	public void Insert(String key, byte[] value) {
-		System.out.println("========INSERTING, cache size = " + cache.size() +  "tree size = " + set.size() + "===========================================");
-		System.out.println("============================="+ counter + " " + TIME_OUT + "===============================================");
+//		System.out.println("========INSERTING, cache size = " + cache.size() +  "tree size = " + set.size() + "===========================================");
+//		System.out.println("============================="+ counter + " " + TIME_OUT + "===============================================");
 		cache.put(key, value);
-		System.out.println(counter +"check 1");
+//		System.out.println(counter +"check 1");
 		if (lru.containsKey(key)) {
 			Integer t = lru.get(key);
 			reverse.remove(t);
 			set.remove(t);
 		}
-		System.out.println(counter + "check 2");
+//		System.out.println(counter + "check 2");
 		lru.put(key, counter);
-		System.out.println(counter + "check 3");
+//		System.out.println(counter + "check 3");
 		reverse.put(Integer.valueOf(counter), key);
 		set.add(counter);
-		System.out.println(counter + "check 4");
+//		System.out.println(counter + "check 4");
 		if (counter % TIME_OUT == 0) {
-			System.out.println("---------------------------CONDITOIN IS TRUE -----------------------------");
+//			System.out.println("---------------------------CONDITOIN IS TRUE -----------------------------");
 			Free();
 		}
 		counter++;
-		System.out.println(counter + "check 5");
+//		System.out.println(counter + "check 5");
 	}
 	public boolean Exists(String key) {
 		return cache.containsKey(key);
@@ -53,7 +53,7 @@ public class LruCache {
 	}
 	private void Free(){
 		int s = cache.size();
-		System.out.println("========FREEING, cache size = " + s +  "tree size = " + set.size() + "===========================================");
+//		System.out.println("========FREEING, cache size = " + s +  "tree size = " + set.size() + "===========================================");
 		
 		while(s > CACHE_SIZE) {
 			Integer t = set.first();
@@ -64,7 +64,7 @@ public class LruCache {
 			reverse.remove(t);	
 			s = cache.size();
 		}		
-		System.out.println("Cache size after freeing = " + cache.size());
+//		System.out.println("Cache size after freeing = " + cache.size());
 	}
 	
 }

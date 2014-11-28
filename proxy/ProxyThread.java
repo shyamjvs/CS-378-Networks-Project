@@ -28,6 +28,7 @@ public class ProxyThread extends Thread {
 		//send request to server
 		//get response from server
 		//send response to user
+		System.out.println(socket.getRemoteSocketAddress().toString());
 
 		try {
 			DataOutputStream out =
@@ -36,6 +37,7 @@ public class ProxyThread extends Thread {
 					new InputStreamReader(socket.getInputStream()));
 
 			String inputLine, outputLine;
+			
 			int cnt = 0;
 			String urlToCall = "";
 			///////////////////////////////////
@@ -62,8 +64,28 @@ public class ProxyThread extends Thread {
 
 				cnt++;
 			}
+			
 			//end get request from client
 			///////////////////////////////////
+			
+			
+			//Adblock check
+			if (Adblock.filter(urlToCall)){
+//				System.out.println("AdBlocked! " + urlToCall);
+				out.close();
+				in.close();
+				socket.close();
+				return;
+			}
+//			System.out.println("Not blocked :( " + urlToCall);
+			
+			if(BlockList.isBlocked(socket, urlToCall)){
+				System.out.println("=============== SITE IS BLOCKED ==================== ");
+				out.close();
+				in.close();
+				socket.close();
+				return;
+			}
 
 			BufferedReader rd = null;
 			//System.out.println("sending request
@@ -105,7 +127,8 @@ public class ProxyThread extends Thread {
                 ///////////////////////////////////
 			 */
 
-			if (ProxyServer.cache.Exists(urlToCall) && !urlToCall.endsWith("css") && !urlToCall.endsWith("jpg")) {
+			if (ProxyServer.cache.Exists(urlToCall) && !urlToCall.endsWith("css") //&& !urlToCall.endsWith("jpg")) {
+					){
 				byte[] temp = ProxyServer.cache.Get(urlToCall);
 				out.write(temp, 0, temp.length);
 				out.flush();
@@ -152,7 +175,10 @@ public class ProxyThread extends Thread {
 
 					while ( index != -1 )
 					{
+						
 						out.write(by,0,index);
+//						System.out.println("------------------------------------------------------");
+						
 						for(int i=0 ;i<index;i++)
 							temp[ctr++] = by[i];
 						index = is.read( by, 0, BUFFER_SIZE );
